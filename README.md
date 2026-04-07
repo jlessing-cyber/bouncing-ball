@@ -8,9 +8,13 @@ const simCtx = simCanvas.getContext("2d");
 const graphCtx = graphCanvas.getContext("2d");
 
 function resize() {
-    simCanvas.width = window.innerWidth;
-    simCanvas.height = window.innerHeight - 200;
+    const h = window.innerHeight;
+    
     graphCanvas.width = window.innerWidth;
+    graphCanvas.height = 200;
+
+    simCanvas.width = window.innerWidth;
+    simCanvas.height = Math.max(h - 200, 200);  // minimum height = 200px
 }
 resize();
 window.onresize = resize;
