@@ -1,14 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Bouncing Ball – Energy Conserving</title>
+  <title>Bouncing Balls with Energy Graph</title>
   <style>
-    body { margin: 0; background: #202020; overflow: hidden; }
+    body {
+      margin: 0;
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+    }
+    #controls {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.4);
+      padding: 10px;
+      border-radius: 8px;
+    }
+    label { display: block; margin-top: 6px; }
     canvas { display: block; }
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
-  <script src="ball.js"></script>
+  <div id="controls">
+    <label>Gravity: <input type="range" id="gravity" min="0" max="20" step="0.1" value="9.8"></label>
+    <label>Elasticity: <input type="range" id="elasticity" min="0" max="1" step="0.01" value="1.0"></label>
+    <label>Time Step dt: <input type="range" id="dt" min="0.001" max="0.05" step="0.001" value="0.01"></label>
+  </div>
+
+  <!-- Main simulation canvas -->
+  <canvas id="simCanvas"></canvas>
+
+  <!-- Energy graph canvas -->
+  <canvas id="graphCanvas" height="200"></canvas>
+
+  <script src="simulation.js"></script>
 </body>
 </html>
