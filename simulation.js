@@ -1,7 +1,6 @@
 const canvas = document.getElementById('simCanvas');
 const ctx = canvas.getContext('2d');
 
-// UI Elements
 const gSlider = document.getElementById('gravity');
 const eSlider = document.getElementById('elasticity');
 const hSlider = document.getElementById('height');
@@ -11,68 +10,69 @@ const gDisp = document.getElementById('g-val');
 const eDisp = document.getElementById('e-val');
 const hDisp = document.getElementById('h-val');
 
-// Physics State
 let ball = {
-    x: 100,
-    y: 100,
+    x: 0,
+    y: 0,
     radius: 20,
-    vx: 4,
+    vx: 0, // Set to 0 for a perfect vertical bounce test
     vy: 0,
+    initialHeight: 0, 
     color: '#58a6ff'
 };
 
 function resize() {
-    // Set canvas to fill the remaining screen space
     canvas.width = window.innerWidth;
-    const controls = document.getElementById('controls');
-    const controlsHeight = controls ? controls.offsetHeight : 100;
+    const controlsHeight = document.getElementById('controls').offsetHeight;
     canvas.height = window.innerHeight - controlsHeight;
-    
-    // Force the ball back into view if a resize moves the floor above it
-    if (ball.y + ball.radius > canvas.height) {
-        ball.y = canvas.height - ball.radius;
-    }
+    resetBall();
 }
 
 function resetBall() {
     ball.x = canvas.width / 2;
-    // Calculate height: Higher slider value = higher spawn point
-    const heightFromFloor = parseInt(hSlider.value);
-    ball.y = canvas.height - heightFromFloor - ball.radius;
+    // Store the height so the physics engine knows where the "max energy" is
+    ball.initialHeight = parseInt(hSlider.value);
+    ball.y = canvas.height - ball.initialHeight - ball.radius;
     ball.vy = 0;
-    ball.vx = (Math.random() - 0.5) * 10; // Give it some horizontal speed
+    ball.vx = 2; // Slight horizontal movement
 }
 
 function update() {
     const gravity = parseFloat(gSlider.value);
     const elasticity = parseFloat(eSlider.value);
 
-    // Update Numerical Value Displays
-    if(gDisp) gDisp.innerText = gravity.toFixed(2);
-    if(eDisp) eDisp.innerText = elasticity.toFixed(2);
-    if(hDisp) hDisp.innerText = hSlider.value + "px";
+    gDisp.innerText = gravity.toFixed(2);
+    eDisp.innerText = elasticity.toFixed(2);
+    hDisp.innerText = hSlider.value + "px";
 
-    // Physics Logic
-    ball.vy += gravity; 
-    ball.x += ball.vx;
+    // 1. Apply Gravity
+    ball.vy += gravity;
     ball.y += ball.vy;
+    ball.x += ball.vx;
 
-    // Floor Collision
+    // 2. Perfect Conservation Logic (Floor Collision)
     if (ball.y + ball.radius > canvas.height) {
         ball.y = canvas.height - ball.radius;
-        ball.vy *= -elasticity;
 
-        // Friction/Jitter fix
-        if (Math.abs(ball.vy) < 0.5) ball.vy = 0;
+        if (elasticity >= 1.0) {
+            /** * ENERGY CONSERVATION FORMULA:
+             * To return to the exact starting height, 
+             * Velocity must be sqrt(2 * gravity * height)
+             */
+            const requiredVelocity = Math.sqrt(2 * gravity * ball.initialHeight);
+            ball.vy = -requiredVelocity;
+        } else {
+            // Normal bouncing with energy loss
+            ball.vy *= -elasticity;
+        }
+
+        // Horizontal conservation
+        if (elasticity < 1.0) ball.vx *= elasticity;
     }
 
-    // Side Wall Collisions
-    if (ball.x + ball.radius > canvas.width) {
-        ball.x = canvas.width - ball.radius;
-        ball.vx *= -elasticity;
-    } else if (ball.x - ball.radius < 0) {
-        ball.x = ball.radius;
-        ball.vx *= -elasticity;
+    // 3. Wall Collisions
+    if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+        ball.vx *= -1; // Bounce off walls perfectly
+        ball.x = ball.x < ball.radius ? ball.radius : canvas.width - ball.radius;
     }
 
     draw();
@@ -82,7 +82,16 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw the Ball
+    // Draw a "Height Marker" line so you can see it returns to the same spot
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height - ball.initialHeight - ball.radius);
+    ctx.lineTo(canvas.width, canvas.height - ball.initialHeight - ball.radius);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw Ball
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
     ctx.fillStyle = ball.color;
@@ -93,11 +102,8 @@ function draw() {
     ctx.closePath();
 }
 
-// Listeners
 window.addEventListener('resize', resize);
-if(resetBtn) resetBtn.addEventListener('click', resetBall);
+resetBtn.addEventListener('click', resetBall);
 
-// Start
 resize();
-resetBall(); // Ensure ball is positioned correctly immediately
 update();
