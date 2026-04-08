@@ -1,55 +1,77 @@
-const canvas = document.getElementById("simCanvas");
-const ctx = canvas.getContext("2d");
-const graphCanvas = document.getElementById("graphCanvas");
-const gCtx = graphCanvas.getContext("2d");
+const canvas = document.getElementById('simCanvas');
+const ctx = canvas.getContext('2d');
 
-// Grab slider elements
-const gravityInput = document.getElementById("gravity");
-const elasticityInput = document.getElementById("elasticity");
-const dtInput = document.getElementById("dt");
+// UI Elements
+const gSlider = document.getElementById('gravity');
+const eSlider = document.getElementById('elasticity');
+const hSlider = document.getElementById('height');
+const resetBtn = document.getElementById('resetBtn');
+
+const gDisp = document.getElementById('g-val');
+const eDisp = document.getElementById('e-val');
+const hDisp = document.getElementById('h-val');
 
 // Physics State
 let ball = {
-    x: 100,
-    y: 100,
+    x: 0,
+    y: 0,
     radius: 20,
-    vx: 5,
+    vx: 2,
     vy: 0,
-    color: "#00d2ff"
+    color: '#58a6ff'
 };
 
-// Resize logic
+/**
+ * Adjusts the canvas size to fill the window 
+ * and resets the ball position.
+ */
 function resize() {
     canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight - 200;
-    graphCanvas.width = window.innerWidth;
+    const controlsHeight = document.getElementById('controls').offsetHeight;
+    canvas.height = window.innerHeight - controlsHeight;
+    resetBall();
 }
 
-window.addEventListener('resize', resize);
-resize();
+/**
+ * Resets the ball to the height defined by the slider.
+ */
+function resetBall() {
+    ball.x = canvas.width / 2;
+    // Calculate height from the floor (canvas.height)
+    ball.y = canvas.height - parseInt(hSlider.value) - ball.radius;
+    ball.vy = 0;
+    ball.vx = (Math.random() - 0.5) * 4; // Add a tiny random horizontal push
+}
 
-// Simulation Loop
+/**
+ * Main animation loop
+ */
 function update() {
-    // 1. Get current values from sliders
-    const gravity = parseFloat(gravityInput.value);
-    const elasticity = parseFloat(elasticityInput.value);
-    const dt = parseFloat(dtInput.value) * 100; // Scaled for visible speed
+    const gravity = parseFloat(gSlider.value);
+    const elasticity = parseFloat(eSlider.value);
 
-    // 2. Apply Physics
-    ball.vy += gravity * dt;
+    // Update Numerical Value Displays
+    gDisp.innerText = gravity.toFixed(2);
+    eDisp.innerText = elasticity.toFixed(2);
+    hDisp.innerText = hSlider.value + "px";
+
+    // --- Physics Logic ---
+    ball.vy += gravity; // Gravity increases downward velocity
     ball.x += ball.vx;
     ball.y += ball.vy;
 
-    // 3. Wall Collisions (Floor)
+    // Floor Collision
     if (ball.y + ball.radius > canvas.height) {
         ball.y = canvas.height - ball.radius;
-        ball.vy *= -elasticity;
-        
-        // Add a tiny bit of friction so it doesn't slide forever
-        ball.vx *= 0.99; 
+        ball.vy *= -elasticity; // Reverse velocity and apply energy loss
+
+        // Stop "jittering" when motion is very small
+        if (Math.abs(ball.vy) < 1.1 && gravity > 0) {
+            ball.vy = 0;
+        }
     }
 
-    // 4. Wall Collisions (Sides)
+    // Side Wall Collisions
     if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
         ball.vx *= -elasticity;
         ball.x = ball.x < ball.radius ? ball.radius : canvas.width - ball.radius;
@@ -59,24 +81,26 @@ function update() {
     requestAnimationFrame(update);
 }
 
+/**
+ * Renders the ball to the canvas
+ */
 function draw() {
-    // Clear simulation canvas
-    ctx.fillStyle = "#111";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw Ball
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
     ctx.fillStyle = ball.color;
     ctx.fill();
+    ctx.strokeStyle = "#f0f6fc";
+    ctx.lineWidth = 2;
+    ctx.stroke();
     ctx.closePath();
-
-    // Simple Graph Placeholder (Clears the graph area)
-    gCtx.fillStyle = "#222";
-    gCtx.fillRect(0, 0, graphCanvas.width, graphCanvas.height);
-    gCtx.fillStyle = "white";
-    gCtx.fillText("Energy Graph Active", 20, 30);
 }
 
-// Start the simulation
+// Event Listeners
+window.addEventListener('resize', resize);
+resetBtn.addEventListener('click', resetBall);
+
+// Start Simulation
+resize();
 update();
