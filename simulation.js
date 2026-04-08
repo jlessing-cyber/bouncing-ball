@@ -13,94 +13,91 @@ const hDisp = document.getElementById('h-val');
 
 // Physics State
 let ball = {
-    x: 0,
-    y: 0,
+    x: 100,
+    y: 100,
     radius: 20,
-    vx: 2,
+    vx: 4,
     vy: 0,
     color: '#58a6ff'
 };
 
-/**
- * Adjusts the canvas size to fill the window 
- * and resets the ball position.
- */
 function resize() {
+    // Set canvas to fill the remaining screen space
     canvas.width = window.innerWidth;
-    const controlsHeight = document.getElementById('controls').offsetHeight;
+    const controls = document.getElementById('controls');
+    const controlsHeight = controls ? controls.offsetHeight : 100;
     canvas.height = window.innerHeight - controlsHeight;
-    resetBall();
+    
+    // Force the ball back into view if a resize moves the floor above it
+    if (ball.y + ball.radius > canvas.height) {
+        ball.y = canvas.height - ball.radius;
+    }
 }
 
-/**
- * Resets the ball to the height defined by the slider.
- */
 function resetBall() {
     ball.x = canvas.width / 2;
-    // Calculate height from the floor (canvas.height)
-    ball.y = canvas.height - parseInt(hSlider.value) - ball.radius;
+    // Calculate height: Higher slider value = higher spawn point
+    const heightFromFloor = parseInt(hSlider.value);
+    ball.y = canvas.height - heightFromFloor - ball.radius;
     ball.vy = 0;
-    ball.vx = (Math.random() - 0.5) * 4; // Add a tiny random horizontal push
+    ball.vx = (Math.random() - 0.5) * 10; // Give it some horizontal speed
 }
 
-/**
- * Main animation loop
- */
 function update() {
     const gravity = parseFloat(gSlider.value);
     const elasticity = parseFloat(eSlider.value);
 
     // Update Numerical Value Displays
-    gDisp.innerText = gravity.toFixed(2);
-    eDisp.innerText = elasticity.toFixed(2);
-    hDisp.innerText = hSlider.value + "px";
+    if(gDisp) gDisp.innerText = gravity.toFixed(2);
+    if(eDisp) eDisp.innerText = elasticity.toFixed(2);
+    if(hDisp) hDisp.innerText = hSlider.value + "px";
 
-    // --- Physics Logic ---
-    ball.vy += gravity; // Gravity increases downward velocity
+    // Physics Logic
+    ball.vy += gravity; 
     ball.x += ball.vx;
     ball.y += ball.vy;
 
     // Floor Collision
     if (ball.y + ball.radius > canvas.height) {
         ball.y = canvas.height - ball.radius;
-        ball.vy *= -elasticity; // Reverse velocity and apply energy loss
+        ball.vy *= -elasticity;
 
-        // Stop "jittering" when motion is very small
-        if (Math.abs(ball.vy) < 1.1 && gravity > 0) {
-            ball.vy = 0;
-        }
+        // Friction/Jitter fix
+        if (Math.abs(ball.vy) < 0.5) ball.vy = 0;
     }
 
     // Side Wall Collisions
-    if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+    if (ball.x + ball.radius > canvas.width) {
+        ball.x = canvas.width - ball.radius;
         ball.vx *= -elasticity;
-        ball.x = ball.x < ball.radius ? ball.radius : canvas.width - ball.radius;
+    } else if (ball.x - ball.radius < 0) {
+        ball.x = ball.radius;
+        ball.vx *= -elasticity;
     }
 
     draw();
     requestAnimationFrame(update);
 }
 
-/**
- * Renders the ball to the canvas
- */
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Draw the Ball
     ctx.beginPath();
     ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
     ctx.fillStyle = ball.color;
     ctx.fill();
     ctx.strokeStyle = "#f0f6fc";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.stroke();
     ctx.closePath();
 }
 
-// Event Listeners
+// Listeners
 window.addEventListener('resize', resize);
-resetBtn.addEventListener('click', resetBall);
+if(resetBtn) resetBtn.addEventListener('click', resetBall);
 
-// Start Simulation
+// Start
 resize();
+resetBall(); // Ensure ball is positioned correctly immediately
 update();
