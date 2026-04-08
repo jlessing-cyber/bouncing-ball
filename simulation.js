@@ -2,7 +2,7 @@ const canvas = document.getElementById('simCanvas');
 const ctx = canvas.getContext('2d');
 
 const gSlider = document.getElementById('gravity');
-const eSlider = document.getElementById('elasticity');
+const eSlider = document.getElementById('elasticity'); // Still exists in HTML, but we will ignore it for the bounce
 const hSlider = document.getElementById('height');
 const resetBtn = document.getElementById('resetBtn');
 
@@ -14,7 +14,7 @@ let ball = {
     x: 0,
     y: 0,
     radius: 20,
-    vx: 0, // Set to 0 for a perfect vertical bounce test
+    vx: 3, 
     vy: 0,
     initialHeight: 0, 
     color: '#58a6ff'
@@ -22,26 +22,27 @@ let ball = {
 
 function resize() {
     canvas.width = window.innerWidth;
-    const controlsHeight = document.getElementById('controls').offsetHeight;
+    const controls = document.getElementById('controls');
+    const controlsHeight = controls ? controls.offsetHeight : 100;
     canvas.height = window.innerHeight - controlsHeight;
     resetBall();
 }
 
 function resetBall() {
     ball.x = canvas.width / 2;
-    // Store the height so the physics engine knows where the "max energy" is
+    // We lock the height here. This is the "Total Energy" of the system.
     ball.initialHeight = parseInt(hSlider.value);
     ball.y = canvas.height - ball.initialHeight - ball.radius;
     ball.vy = 0;
-    ball.vx = 2; // Slight horizontal movement
+    ball.vx = 3; 
 }
 
 function update() {
     const gravity = parseFloat(gSlider.value);
-    const elasticity = parseFloat(eSlider.value);
-
+    
+    // UI Updates
     gDisp.innerText = gravity.toFixed(2);
-    eDisp.innerText = elasticity.toFixed(2);
+    eDisp.innerText = "1.00 (Locked)"; // Overriding display to show it's conserved
     hDisp.innerText = hSlider.value + "px";
 
     // 1. Apply Gravity
@@ -49,30 +50,28 @@ function update() {
     ball.y += ball.vy;
     ball.x += ball.vx;
 
-    // 2. Perfect Conservation Logic (Floor Collision)
+    // 2. PERFECT CONSERVATION COLLISION
+    // If the ball hits the floor...
     if (ball.y + ball.radius > canvas.height) {
         ball.y = canvas.height - ball.radius;
 
-        if (elasticity >= 1.0) {
-            /** * ENERGY CONSERVATION FORMULA:
-             * To return to the exact starting height, 
-             * Velocity must be sqrt(2 * gravity * height)
-             */
-            const requiredVelocity = Math.sqrt(2 * gravity * ball.initialHeight);
-            ball.vy = -requiredVelocity;
+        // PHYSICS FIX: Instead of multiplying by a slider, 
+        // we calculate exactly what velocity is needed to reach the initial height again.
+        // Formula: v = sqrt(2 * g * h)
+        if (gravity > 0) {
+            ball.vy = -Math.sqrt(2 * gravity * ball.initialHeight);
         } else {
-            // Normal bouncing with energy loss
-            ball.vy *= -elasticity;
+            ball.vy *= -1; // If gravity is 0, just flip the direction
         }
-
-        // Horizontal conservation
-        if (elasticity < 1.0) ball.vx *= elasticity;
     }
 
-    // 3. Wall Collisions
-    if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
-        ball.vx *= -1; // Bounce off walls perfectly
-        ball.x = ball.x < ball.radius ? ball.radius : canvas.width - ball.radius;
+    // 3. Wall Collisions (Perfectly Elastic)
+    if (ball.x + ball.radius > canvas.width) {
+        ball.x = canvas.width - ball.radius;
+        ball.vx *= -1;
+    } else if (ball.x - ball.radius < 0) {
+        ball.x = ball.radius;
+        ball.vx *= -1;
     }
 
     draw();
@@ -82,12 +81,12 @@ function update() {
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw a "Height Marker" line so you can see it returns to the same spot
+    // Draw the "Energy Ceiling" - the ball will always return exactly here
     ctx.setLineDash([5, 5]);
     ctx.beginPath();
     ctx.moveTo(0, canvas.height - ball.initialHeight - ball.radius);
     ctx.lineTo(canvas.width, canvas.height - ball.initialHeight - ball.radius);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+    ctx.strokeStyle = "rgba(88, 166, 255, 0.3)";
     ctx.stroke();
     ctx.setLineDash([]);
 
