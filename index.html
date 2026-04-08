@@ -1,43 +1,102 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Bouncing Balls with Energy Graph</title>
-  <style>
-    body {
-      margin: 0;
-      background: #111;
-      color: white;
-      font-family: sans-serif;
-    }
-    #controls {
-      position: fixed;
-      top: 10px;
-      left: 10px;
-      background: rgba(0,0,0,0.4);
-      padding: 10px;
-      border-radius: 8px;
-      z-index: 10;
-    }
-    label { display: block; margin-top: 6px; }
-    canvas { display: block; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Engine: Bouncing Ball</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0d1117; /* GitHub Dark Theme Background */
+            color: #c9d1d9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        #controls {
+            background: #161b22;
+            padding: 20px;
+            border-bottom: 1px solid #30363d;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        input[type=range] {
+            cursor: pointer;
+            width: 150px;
+        }
+
+        .value-display {
+            font-family: monospace;
+            color: #58a6ff;
+            margin-top: 5px;
+            font-size: 16px;
+        }
+
+        canvas {
+            background: #0d1117;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.5);
+            cursor: crosshair;
+        }
+
+        .btn-reset {
+            background-color: #238636;
+            color: white;
+            border: 1px solid rgba(240,246,252,0.1);
+            padding: 5px 15px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            align-self: center;
+        }
+
+        .btn-reset:hover { background-color: #2ea043; }
+    </style>
 </head>
 <body>
 
-  <div id="controls">
-    <label>Gravity: <input type="range" id="gravity" min="0" max="20" step="0.1" value="9.8"></label>
-    <label>Elasticity: <input type="range" id="elasticity" min="0" max="1" step="0.01" value="1.0"></label>
-    <label>Time Step dt: <input type="range" id="dt" min="0.001" max="0.05" step="0.001" value="0.01"></label>
-  </div>
+    <div id="controls">
+        <div class="control-group">
+            <label>Gravity</label>
+            <input type="range" id="gravity" min="0" max="2" step="0.01" value="0.5">
+            <div class="value-display" id="g-val">0.50</div>
+        </div>
 
-  <!-- Main simulation canvas -->
-  <canvas id="simCanvas"></canvas>
+        <div class="control-group">
+            <label>Elasticity</label>
+            <input type="range" id="elasticity" min="0" max="1" step="0.01" value="0.8">
+            <div class="value-display" id="e-val">0.80</div>
+        </div>
 
-  <!-- Energy graph canvas -->
-  <canvas id="graphCanvas" height="200"></canvas>
+        <div class="control-group">
+            <label>Initial Height</label>
+            <input type="range" id="height" min="50" max="500" step="1" value="100">
+            <div class="value-display" id="h-val">100px</div>
+        </div>
 
-  <!-- Load the script ONCE, and only after the canvas exists -->
-  <script src="simulation.js"></script>
+        <button class="btn-reset" id="resetBtn">Drop Ball</button>
+    </div>
 
+    <canvas id="simCanvas"></canvas>
+
+    <script src="simulation.js"></script>
 </body>
 </html>
