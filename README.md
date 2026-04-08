@@ -1,215 +1,82 @@
-// ---------------------------
-// Canvas setup
-// ---------------------------
-const simCanvas = document.getElementById("simCanvas");
+const canvas = document.getElementById("simCanvas");
+const ctx = canvas.getContext("2d");
 const graphCanvas = document.getElementById("graphCanvas");
+const gCtx = graphCanvas.getContext("2d");
 
-const simCtx = simCanvas.getContext("2d");
-const graphCtx = graphCanvas.getContext("2d");
+// Grab slider elements
+const gravityInput = document.getElementById("gravity");
+const elasticityInput = document.getElementById("elasticity");
+const dtInput = document.getElementById("dt");
 
+// Physics State
+let ball = {
+    x: 100,
+    y: 100,
+    radius: 20,
+    vx: 5,
+    vy: 0,
+    color: "#00d2ff"
+};
+
+// Resize logic
 function resize() {
-    const h = window.innerHeight;
-    
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight - 200;
     graphCanvas.width = window.innerWidth;
-    graphCanvas.height = 200;
-
-    simCanvas.width = window.innerWidth;
-    simCanvas.height = Math.max(h - 200, 200);  // minimum height = 200px
 }
+
+window.addEventListener('resize', resize);
 resize();
-window.onresize = resize;
 
-// ---------------------------
-// Parameters + UI
-// ---------------------------
-let gravitySlider = document.getElementById("gravity");
-let elasticitySlider = document.getElementById("elasticity");
-let dtSlider = document.getElementById("dt");
-
-// ---------------------------
-// Ball class
-// ---------------------------
-class Ball {
-    constructor(x, y, vx, vy, radius, depth) {
-        this.x = x;
-        this.y = y;
-        this.vx = vx;
-        this.vy = vy;
-        this.radius = radius;
-        
-        // Fake “3D”: depth 1–3 influences size
-        this.depth = depth;
-    }
-
-    update(g, dt) {
-        this.vy += g * dt;       // Euler-Cromer: update velocity first
-        this.x += this.vx * dt;
-        this.y += this.vy * dt;
-    }
-
-    draw(ctx) {
-        const scaledR = this.radius / this.depth;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, scaledR, 0, Math.PI * 2);
-        ctx.fillStyle = `rgb(${100 + 50*this.depth}, 120, 200)`;
-        ctx.fill();
-    }
-}
-
-// ---------------------------
-// Create multiple balls
-// ---------------------------
-let balls = [];
-for (let i = 0; i < 6; i++) {
-    balls.push(new Ball(
-        Math.random() * simCanvas.width,
-        Math.random() * simCanvas.height * 0.2,
-        (Math.random() - 0.5) * 200,
-        (Math.random() - 0.5) * 200,
-        30 + Math.random() * 15,
-        1 + Math.random() * 2   // depth for fake 3D
-    ));
-}
-
-// ---------------------------
-// Ball–ball elastic collisions
-// ---------------------------
-function handleBallCollisions() {
-    for (let i = 0; i < balls.length; i++) {
-        for (let j = i + 1; j < balls.length; j++) {
-            const b1 = balls[i];
-            const b2 = balls[j];
-
-            const dx = b2.x - b1.x;
-            const dy = b2.y - b1.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-
-            const r1 = b1.radius / b1.depth;
-            const r2 = b2.radius / b2.depth;
-
-            if (dist < r1 + r2) {
-                // Normalize collision vector
-                const nx = dx / dist;
-                const ny = dy / dist;
-
-                // Relative velocity
-                const dvx = b2.vx - b1.vx;
-                const dvy = b2.vy - b1.vy;
-
-                // Project relative velocity onto collision normal
-                const relVel = dvx * nx + dvy * ny;
-
-                // If separating, ignore
-                if (relVel > 0) continue;
-
-                const impulse = (2 * relVel) / 2; // equal masses
-
-                b1.vx += impulse * nx;
-                b1.vy += impulse * ny;
-                b2.vx -= impulse * nx;
-                b2.vy -= impulse * ny;
-
-                // Prevent overlap
-                const overlap = r1 + r2 - dist;
-                b1.x -= nx * overlap/2;
-                b1.y -= ny * overlap/2;
-                b2.x += nx * overlap/2;
-                b2.y += ny * overlap/2;
-            }
-        }
-    }
-}
-
-// ---------------------------
-// Wall collisions
-// ---------------------------
-function handleWallCollisions(ball, elasticity) {
-    const r = ball.radius / ball.depth;
-
-    if (ball.x - r < 0) {
-        ball.x = r;
-        ball.vx = -ball.vx * elasticity;
-    }
-    if (ball.x + r > simCanvas.width) {
-        ball.x = simCanvas.width - r;
-        ball.vx = -ball.vx * elasticity;
-    }
-    if (ball.y - r < 0) {
-        ball.y = r;
-        ball.vy = -ball.vy * elasticity;
-    }
-    if (ball.y + r > simCanvas.height) {
-        ball.y = simCanvas.height - r;
-        ball.vy = -ball.vy * elasticity;
-    }
-}
-
-// ---------------------------
-// Energy Graph
-// ---------------------------
-let energyHistory = [];
-
-function recordEnergy(g) {
-    let KE = 0, PE = 0;
-    balls.forEach(b => {
-        const v2 = b.vx**2 + b.vy**2;
-        KE += 0.5 * v2;
-        PE += g * (simCanvas.height - b.y);
-    });
-    energyHistory.push({ KE, PE, total: KE + PE });
-    if (energyHistory.length > graphCanvas.width) {
-        energyHistory.shift();
-    }
-}
-
-function drawGraph() {
-    graphCtx.fillStyle = "#000";
-    graphCtx.fillRect(0, 0, graphCanvas.width, graphCanvas.height);
-
-    for (let i = 0; i < energyHistory.length; i++) {
-        const e = energyHistory[i];
-
-        // Kinetic energy
-        graphCtx.fillStyle = "red";
-        graphCtx.fillRect(i, graphCanvas.height - e.KE * 0.02, 2, 2);
-
-        // Potential
-        graphCtx.fillStyle = "blue";
-        graphCtx.fillRect(i, graphCanvas.height - e.PE * 0.02, 2, 2);
-
-        // Total
-        graphCtx.fillStyle = "yellow";
-        graphCtx.fillRect(i, graphCanvas.height - e.total * 0.02, 2, 2);
-    }
-}
-
-// ---------------------------
-// Main loop
-// ---------------------------
+// Simulation Loop
 function update() {
-    const g = parseFloat(gravitySlider.value);
-    const elasticity = parseFloat(elasticitySlider.value);
-    const dt = parseFloat(dtSlider.value);
+    // 1. Get current values from sliders
+    const gravity = parseFloat(gravityInput.value);
+    const elasticity = parseFloat(elasticityInput.value);
+    const dt = parseFloat(dtInput.value) * 100; // Scaled for visible speed
 
-    simCtx.fillStyle = "#111";
-    simCtx.fillRect(0, 0, simCanvas.width, simCanvas.height);
+    // 2. Apply Physics
+    ball.vy += gravity * dt;
+    ball.x += ball.vx;
+    ball.y += ball.vy;
 
-    // Update physics
-    balls.forEach(ball => {
-        ball.update(g, dt);
-        handleWallCollisions(ball, elasticity);
-    });
+    // 3. Wall Collisions (Floor)
+    if (ball.y + ball.radius > canvas.height) {
+        ball.y = canvas.height - ball.radius;
+        ball.vy *= -elasticity;
+        
+        // Add a tiny bit of friction so it doesn't slide forever
+        ball.vx *= 0.99; 
+    }
 
-    handleBallCollisions();
+    // 4. Wall Collisions (Sides)
+    if (ball.x + ball.radius > canvas.width || ball.x - ball.radius < 0) {
+        ball.vx *= -elasticity;
+        ball.x = ball.x < ball.radius ? ball.radius : canvas.width - ball.radius;
+    }
 
-    // Draw balls
-    balls.forEach(ball => ball.draw(simCtx));
-
-    // Energy tracking + graph
-    recordEnergy(g);
-    drawGraph();
-
+    draw();
     requestAnimationFrame(update);
 }
 
+function draw() {
+    // Clear simulation canvas
+    ctx.fillStyle = "#111";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Draw Ball
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+    ctx.fillStyle = ball.color;
+    ctx.fill();
+    ctx.closePath();
+
+    // Simple Graph Placeholder (Clears the graph area)
+    gCtx.fillStyle = "#222";
+    gCtx.fillRect(0, 0, graphCanvas.width, graphCanvas.height);
+    gCtx.fillStyle = "white";
+    gCtx.fillText("Energy Graph Active", 20, 30);
+}
+
+// Start the simulation
 update();
