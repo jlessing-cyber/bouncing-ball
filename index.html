@@ -1,27 +1,105 @@
-<div id="controls">
-    <div class="control-group">
-        <label>Gravity</label>
-        <input type="range" id="gravity" min="0.1" max="2" step="0.01" value="0.5">
-        <div class="value-display" id="g-val">0.50</div>
-    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Simulation</title>
+    <style>
+        body {
+            margin: 0;
+            background: #0d1117;
+            color: #c9d1d9;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
 
-    <div class="control-group">
-        <label>Initial Height</label>
-        <input type="range" id="height" min="50" max="500" step="1" value="300">
-        <div class="value-display" id="h-val">300px</div>
-    </div>
+        #controls {
+            background: #161b22;
+            padding: 15px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            z-index: 10;
+        }
 
-    <div class="control-group" style="min-width: 200px;">
-        <label>Energy Conservation</label>
-        <div style="width: 200px; height: 20px; background: #30363d; border-radius: 4px; overflow: hidden; display: flex;">
-            <div id="pe-bar" style="height: 100%; background: #238636; width: 50%; transition: width 0.05s;"></div>
-            <div id="ke-bar" style="height: 100%; background: #1f6feb; width: 50%; transition: width 0.05s;"></div>
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 150px;
+        }
+
+        label { font-size: 12px; margin-bottom: 5px; font-weight: bold; }
+        
+        input[type=range] { width: 120px; cursor: pointer; }
+
+        .value-display { font-family: monospace; color: #58a6ff; font-size: 14px; }
+
+        #energy-container {
+            width: 200px;
+            height: 20px;
+            background: #30363d;
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+            border: 1px solid #444;
+        }
+
+        #pe-bar { background: #238636; width: 50%; transition: width 0.01s linear; }
+        #ke-bar { background: #1f6feb; width: 50%; transition: width 0.01s linear; }
+
+        canvas {
+            flex-grow: 1; /* This forces the canvas to take up all remaining space */
+            background: #0d1117;
+            display: block;
+        }
+
+        .btn-reset {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-reset:hover { background: #2ea043; }
+    </style>
+</head>
+<body>
+
+    <div id="controls">
+        <div class="control-group">
+            <label>Gravity</label>
+            <input type="range" id="gravity" min="0.1" max="2" step="0.01" value="0.5">
+            <div class="value-display" id="g-val">0.50</div>
         </div>
-        <div class="value-display" style="font-size: 12px; margin-top: 5px;">
-            <span style="color: #238636;">● PE</span> 
-            <span style="color: #1f6feb; margin-left: 10px;">● KE</span>
+
+        <div class="control-group">
+            <label>Initial Height</label>
+            <input type="range" id="height" min="50" max="600" step="1" value="300">
+            <div class="value-display" id="h-val">300px</div>
         </div>
+
+        <div class="control-group">
+            <label>Energy Conservation (PE | KE)</label>
+            <div id="energy-container">
+                <div id="pe-bar"></div>
+                <div id="ke-bar"></div>
+            </div>
+        </div>
+
+        <button class="btn-reset" id="resetBtn">Drop Ball</button>
     </div>
 
-    <button class="btn-reset" id="resetBtn">Drop Ball</button>
-</div>
+    <canvas id="simCanvas"></canvas>
+
+    <script src="simulation.js"></script>
+</body>
+</html>
